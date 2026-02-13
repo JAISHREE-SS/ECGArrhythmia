@@ -1,9 +1,9 @@
 
-# ECG Project — by Person B
+# ECG Project 
 
 This project contains **preprocessed MIT-BIH ECG dataset**, dashboards, and a Flask API for **arrhythmia detection simulation**.  
 
-Person A can directly use this for **training models, testing dashboards, or integrating live predictions**.
+use this for **training models, testing dashboards, or integrating live predictions**.
 
 ---
 
