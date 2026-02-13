@@ -1,0 +1,9 @@
+# Ignore dataset
+data/
+
+# Ignore numpy dataset files
+*.npy
+
+# Ignore cache files
+__pycache__/
+*.pyc
