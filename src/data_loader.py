@@ -9,9 +9,20 @@ def get_record_list(data_path):
     return records
 
 
-def load_record(data_path, record_name):
+def load_record(data_path, record_name, lead_index=0):
     record_path = os.path.join(data_path, record_name)
     record = wfdb.rdrecord(record_path)
-    signal = record.p_signal[:, 0]  # MLII only
+    signal = record.p_signal[:, lead_index]
     fs = record.fs
     return signal, fs
+
+
+def load_record_all_leads(data_path, record_name):
+    record_path = os.path.join(data_path, record_name)
+    record = wfdb.rdrecord(record_path)
+    signals = record.p_signal
+    fs = record.fs
+    lead_names = list(record.sig_name) if record.sig_name is not None else [
+        f"lead_{idx}" for idx in range(signals.shape[1])
+    ]
+    return signals, fs, lead_names
