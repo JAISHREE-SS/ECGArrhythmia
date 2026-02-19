@@ -52,6 +52,15 @@ pip install -r requirements.txt
 
 ## Usage
 
+### Quick Start (MIT + INCART + Merge)
+
+```powershell
+python save_dataset.py --output-prefix mit_ --no-plot
+python download_incart_data.py --target-dir data/incartdb
+python save_dataset_incart.py --output-prefix incart_ --target-fs 360 --no-plot
+python merge_datasets.py --mit-prefix mit_ --incart-prefix incart_ --on-duplicate-record error
+```
+
 ### 1) Build MIT dataset (recommended with prefix)
 
 ```powershell
@@ -129,6 +138,13 @@ Example:
 GET /get_window/0?record_name=100&lead_name=MLII
 ```
 
+### 6) Verify merged dataset settings
+
+```powershell
+python -c "import json; print(json.load(open('dataset_meta.json')))"
+python -c "import numpy as np; w=np.load('all_windows.npy', mmap_mode='r'); print('shape=', w.shape, 'single_window=', w[0].shape)"
+```
+
 ---
 
 ## Notes
@@ -136,3 +152,4 @@ GET /get_window/0?record_name=100&lead_name=MLII
 - Use prefixes (`mit_`, `incart_`) to avoid overwriting datasets.
 - INCART source files (`.dat/.hea/.atr`) are not modified; only output `.npy/.json` files are generated.
 - `dataset_meta.json` records effective sampling/window settings for traceability.
+- For INCART at 360 Hz with defaults, expected single-window shape is `(720, 1)`.
