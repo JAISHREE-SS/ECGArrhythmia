@@ -1,3 +1,4 @@
+import argparse
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,12 +16,26 @@ CLASS_NAMES = {
     4: "Q",
 }
 
+parser = argparse.ArgumentParser(description="Build MIT-BIH dataset in output .npy format.")
+parser.add_argument("--data-path", default="data/mitdb")
+parser.add_argument("--window-size", type=int, default=720, help="Window size in samples.")
+parser.add_argument("--stride", type=int, default=360, help="Stride in samples.")
+parser.add_argument(
+    "--output-prefix",
+    default="",
+    help="Prefix for output files. Use '' for all_*.npy or e.g. 'mit_'.",
+)
+parser.add_argument("--no-plot", action="store_true")
+args = parser.parse_args()
+
 # -----------------------------
 # Config
 # -----------------------------
-data_path = "data/mitdb"
-window_size = 720  # 2-second window
-stride = 360       # 50% overlap
+data_path = args.data_path
+window_size = args.window_size
+stride = args.stride
+if window_size <= 0 or stride <= 0:
+    raise ValueError("--window-size and --stride must be positive.")
 
 # -----------------------------
 # 1) Get all records
@@ -118,15 +133,22 @@ print(
 # -----------------------------
 # 4) Save dataset + metadata
 # -----------------------------
-np.save("all_windows.npy", all_windows)
-np.save("all_labels.npy", all_labels)
-np.save("all_record_names.npy", all_record_names)
-np.save("all_lead_names.npy", all_lead_names)
-print("Saved: all_windows.npy, all_labels.npy, all_record_names.npy, all_lead_names.npy")
+out_windows = f"{args.output_prefix}all_windows.npy"
+out_labels = f"{args.output_prefix}all_labels.npy"
+out_records = f"{args.output_prefix}all_record_names.npy"
+out_leads = f"{args.output_prefix}all_lead_names.npy"
+np.save(out_windows, all_windows)
+np.save(out_labels, all_labels)
+np.save(out_records, all_record_names)
+np.save(out_leads, all_lead_names)
+print(f"Saved: {out_windows}, {out_labels}, {out_records}, {out_leads}")
 
 # -----------------------------
 # 5) Sanity check plots
 # -----------------------------
+if args.no_plot:
+    raise SystemExit(0)
+
 normal_candidates = np.where(all_labels == 0)[0]
 abnormal_candidates = np.where(all_labels != 0)[0]
 
