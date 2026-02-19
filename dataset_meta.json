@@ -1,0 +1,19 @@
+{
+  "source_datasets": [
+    "mitdb",
+    "incartdb"
+  ],
+  "mit_prefix": "mit_",
+  "incart_prefix": "incart_",
+  "output_prefix": "",
+  "on_duplicate_record": "skip-second",
+  "duplicate_records_found": 0,
+  "duplicate_records": [],
+  "total_windows": 1791626,
+  "window_shape": [
+    720,
+    1
+  ],
+  "unique_records": 123,
+  "unique_leads": 13
+}
