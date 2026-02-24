@@ -1,155 +1,160 @@
 # ECG Project
 
-ECG preprocessing and streaming utilities for arrhythmia datasets.
-
-This repository supports:
-- MIT-BIH dataset preprocessing
-- INCART dataset preprocessing with optional resampling to 360 Hz
-- Merging MIT and INCART outputs into one dataset without duplicate records
-- Dashboard/API playback from saved `.npy` windows
+This repo now runs from the repository root with application code and data under `backend/`.
 
 ---
 
-## Project Structure
+## Runtime Contract
 
-```text
-ECG_PROJECT/
-|-- data/
-|   |-- mitdb/                  # MIT-BIH files (.dat, .hea, .atr)
-|   |-- incartdb/               # INCART files (.dat, .hea, .atr)
-|-- src/
-|-- dashboards/
-|-- save_dataset.py             # Build MIT dataset
-|-- download_incart_data.py     # Download INCART from PhysioNet
-|-- save_dataset_incart.py      # Build INCART dataset (supports --target-fs)
-|-- merge_datasets.py           # Merge MIT + INCART with dedup by record
-|-- requirements.txt
-|-- README.md
+- Working directory: `Z:\ECG_PROJECT`
+- Python interpreter: `backend\ecg_env\Scripts\python.exe`
+- Scripts: `backend\*.py`
+- Data roots: `backend\data\mitdb`, `backend\data\incartdb`
+- Outputs: `backend\all_*.npy`, `backend\class_map.json`, `backend\dataset_meta.json`
+
+---
+
+## Verify Environment
+
+```powershell
+Get-Location
+Test-Path backend\ecg_env\Scripts\python.exe
+Test-Path backend\data\mitdb
+Test-Path backend\data\incartdb
 ```
 
 ---
 
-## Label Scheme
+## Build Datasets (Root-Based)
 
-`src/label_mapper.py` maps beat symbols into:
-- `0 -> N`
-- `1 -> S`
-- `2 -> V`
-- `3 -> F`
-- `4 -> Q`
-
----
-
-## Setup
+### 1) MIT dataset (prefixed)
 
 ```powershell
-python -m venv ecg_env
-.\ecg_env\Scripts\Activate.ps1
-pip install -r requirements.txt
+.\backend\ecg_env\Scripts\python.exe backend\save_dataset.py --output-prefix backend\mit_ --no-plot
+```
+
+Note: lead alias normalization is applied while saving (`MLII` is saved as `II`).
+
+### 2) INCART dataset at 360 Hz (prefixed)
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe backend\save_dataset_incart.py --data-path backend\data\incartdb --output-prefix backend\incart_ --target-fs 360 --no-plot
+```
+
+Note: lead alias normalization is also applied for INCART (`MLII` is saved as `II`).
+
+### 3) Merge MIT + INCART (strict dedup by record name)
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe backend\merge_datasets.py --mit-prefix backend\mit_ --incart-prefix backend\incart_ --output-prefix backend\ --on-duplicate-record error
+```
+
+If you intentionally want to skip duplicates from INCART:
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe backend\merge_datasets.py --mit-prefix backend\mit_ --incart-prefix backend\incart_ --output-prefix backend\ --on-duplicate-record skip-second
+```
+
+### 4) Merge into explicit `merged_all_*` files
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe backend\merge_datasets.py --mit-prefix backend\mit_ --incart-prefix backend\incart_ --output-prefix backend\merged_
 ```
 
 ---
 
-## Usage
+## Run API and Dashboard
 
-### Quick Start (MIT + INCART + Merge)
+`live_dashboard_api.py` and `test_ecg_dashboard.py` load `all_*.npy` from current directory.  
+Run them from inside `backend/`.
 
-```powershell
-python save_dataset.py --output-prefix mit_ --no-plot
-python download_incart_data.py --target-dir data/incartdb
-python save_dataset_incart.py --output-prefix incart_ --target-fs 360 --no-plot
-python merge_datasets.py --mit-prefix mit_ --incart-prefix incart_ --on-duplicate-record error
-```
-
-### 1) Build MIT dataset (recommended with prefix)
+### API
 
 ```powershell
-python save_dataset.py --output-prefix mit_ --no-plot
-```
-
-Outputs:
-- `mit_all_windows.npy`
-- `mit_all_labels.npy`
-- `mit_all_record_names.npy`
-- `mit_all_lead_names.npy`
-
-### 2) Download INCART
-
-```powershell
-python download_incart_data.py --target-dir data/incartdb
-```
-
-### 3) Build INCART dataset at 360 Hz
-
-```powershell
-python save_dataset_incart.py --output-prefix incart_ --target-fs 360 --no-plot
-```
-
-Outputs:
-- `incart_all_windows.npy`
-- `incart_all_labels.npy`
-- `incart_all_record_names.npy`
-- `incart_all_lead_names.npy`
-- `incart_class_map.json`
-- `incart_dataset_meta.json`
-
-Default window settings are 2.0 s window and 1.0 s stride, so at 360 Hz:
-- `window_size_samples = 720`
-- `stride_samples = 360`
-
-### 4) Merge MIT + INCART without duplicate records
-
-Strict mode (fail if duplicate record names exist):
-```powershell
-python merge_datasets.py --mit-prefix mit_ --incart-prefix incart_ --on-duplicate-record error
-```
-
-Skip duplicates from second dataset (INCART):
-```powershell
-python merge_datasets.py --mit-prefix mit_ --incart-prefix incart_ --on-duplicate-record skip-second
-```
-
-By default, merged output is written to:
-- `all_windows.npy`
-- `all_labels.npy`
-- `all_record_names.npy`
-- `all_lead_names.npy`
-- `class_map.json` (if available)
-- `dataset_meta.json`
-
-### 5) Run API
-
-```powershell
-python -m dashboards.live_dashboard_api
+cd backend
+..\backend\ecg_env\Scripts\python.exe -m dashboards.live_dashboard_api
 ```
 
 Default URL: `http://127.0.0.1:5000`
 
-Endpoints:
-- `GET /metadata`
-- `GET /get_window/<idx>`
+Smoke checks:
+- `GET http://127.0.0.1:5000/metadata`
+- `GET http://127.0.0.1:5000/get_window/0`
 
-Optional query params:
-- `record_name`
-- `lead_name`
-
-Example:
-```text
-GET /get_window/0?record_name=100&lead_name=MLII
-```
-
-### 6) Verify merged dataset settings
+### Local dashboard simulator
 
 ```powershell
-python -c "import json; print(json.load(open('dataset_meta.json')))"
-python -c "import numpy as np; w=np.load('all_windows.npy', mmap_mode='r'); print('shape=', w.shape, 'single_window=', w[0].shape)"
+cd backend
+..\backend\ecg_env\Scripts\python.exe dashboards\test_ecg_dashboard.py
 ```
 
 ---
 
-## Notes
+## Validate Outputs
 
-- Use prefixes (`mit_`, `incart_`) to avoid overwriting datasets.
-- INCART source files (`.dat/.hea/.atr`) are not modified; only output `.npy/.json` files are generated.
-- `dataset_meta.json` records effective sampling/window settings for traceability.
-- For INCART at 360 Hz with defaults, expected single-window shape is `(720, 1)`.
+Confirm merged files exist (default merge output):
+- `backend\all_windows.npy`
+- `backend\all_labels.npy`
+- `backend\all_record_names.npy`
+- `backend\all_lead_names.npy`
+
+If you used `--output-prefix backend\merged_`, confirm:
+- `backend\merged_all_windows.npy`
+- `backend\merged_all_labels.npy`
+- `backend\merged_all_record_names.npy`
+- `backend\merged_all_lead_names.npy`
+
+Check metadata:
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe -c "import json; print(json.load(open('backend/dataset_meta.json')))"
+```
+
+Check shape:
+
+```powershell
+.\backend\ecg_env\Scripts\python.exe -c "import numpy as np; w=np.load('backend/all_windows.npy', mmap_mode='r'); print(w.shape, w[0].shape)"
+```
+
+Expected for INCART default window config at 360 Hz:
+- single window shape `(720, 1)`
+
+---
+
+## Troubleshooting
+
+- `ModuleNotFoundError: dashboards`
+  - Start API from `backend/`.
+- `FileNotFoundError: all_windows.npy`
+  - Ensure merge output uses `--output-prefix backend\` and run API from `backend/`.
+- `wfdb` import errors
+  - Use `backend\ecg_env\Scripts\python.exe`, not system Python.
+- Duplicate record conflict on merge
+  - Keep `--on-duplicate-record error` unless you explicitly want `skip-second`.
+
+---
+
+## Git Push Strategy
+
+This is a single Git repository, so `git push origin main` pushes committed history for the whole repo.
+
+### Push backend changes to current GitHub repo
+
+```powershell
+git add backend README.md
+git commit -m "Backend updates"
+git push origin main
+```
+
+### Push `frontend/` to a separate Lovable-connected repo
+
+```powershell
+git remote add lovable <FRONTEND_REPO_URL>
+git subtree split --prefix frontend -b frontend-sync
+git push lovable frontend-sync:main
+git branch -D frontend-sync
+```
+
+Notes:
+- `git remote add lovable ...` is needed once per local clone.
+- If the Lovable repo rejects non-fast-forward pushes, use `git push lovable frontend-sync:main --force` only if intentional.
