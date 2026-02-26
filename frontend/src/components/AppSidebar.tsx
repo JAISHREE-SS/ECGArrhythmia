@@ -8,7 +8,6 @@ import {
   History,
   BarChart3,
   Info,
-  Heart,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -34,9 +33,11 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 border-b px-4 py-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
-          <Heart className="h-5 w-5 text-primary-foreground" />
-        </div>
+        <img
+          src="/logo.png"
+          alt="ECG Arrhythmia Logo"
+          className="h-9 w-9 shrink-0 rounded-lg border object-cover"
+        />
         {!collapsed && (
           <div className="overflow-hidden">
             <h1 className="truncate text-sm font-bold text-foreground">
